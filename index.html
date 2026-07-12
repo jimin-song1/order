@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주문</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ── THEME ── */
+:root{
+  --bg:#0d0f14;--s1:#14171f;--s2:#1c2030;--s3:#242840;
+  --border:#2a2f45;--border2:#363d5a;
+  --accent:#4f7cff;--accent2:#7b9fff;--accentd:rgba(79,124,255,.12);--accentd2:rgba(79,124,255,.22);
+  --text:#e2e6f6;--textd:#8892b4;--textm:#454d6a;
+  --green:#3ecf8e;--greend:rgba(62,207,142,.12);
+  --red:#f05b6a;--redd:rgba(240,91,106,.12);
+  --yellow:#f5c518;--yellowd:rgba(245,197,24,.12);
+  --r:8px;--rs:5px;
+}
+.light{
+  --bg:#f4f6fb;--s1:#ffffff;--s2:#f0f2f8;--s3:#e4e8f4;
+  --border:#d4d8e8;--border2:#b8bdd4;
+  --accent:#3a6af0;--accent2:#2655d8;--accentd:rgba(58,106,240,.08);--accentd2:rgba(58,106,240,.16);
+  --text:#1a1e2e;--textd:#5a627a;--textm:#9aa0b8;
+  --green:#1ea870;--greend:rgba(30,168,112,.1);
+  --red:#d94455;--redd:rgba(217,68,85,.1);
+  --yellow:#c49a00;--yellowd:rgba(196,154,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',-apple-system,'Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.5;transition:background .2s,color .2s}
+
+/* NAV */
+nav{background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;height:50px;position:sticky;top:0;z-index:200;gap:2px}
+.nav-logo{font-size:16px;font-weight:800;color:var(--accent);letter-spacing:-1px;margin-right:20px;cursor:pointer}
+.nav-tab{padding:0 14px;height:50px;display:flex;align-items:center;font-size:13px;color:var(--textd);cursor:pointer;border-bottom:2px solid transparent;gap:6px;transition:all .15s;font-weight:500;border-top:none;border-left:none;border-right:none;background:none;font-family:inherit}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-sp{flex:1}
+.nav-icon-btn{background:none;border:1px solid var(--border);border-radius:var(--rs);color:var(--textd);cursor:pointer;font-size:14px;padding:4px 9px;font-family:inherit;transition:all .15s}
+.nav-icon-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* PAGES */
+.page{display:none;padding:20px;max-width:1080px;margin:0 auto}
+.page.active{display:block}
+
+/* WORKFLOW NAV */
+.wf-nav{display:flex;align-items:center;gap:0;margin-bottom:20px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.wf-nav::-webkit-scrollbar{display:none}
+.wf-step{display:flex;align-items:center;gap:0;flex-shrink:0}
+.wf-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;border:2px solid var(--border2);background:var(--s2);color:var(--textm)}
+.wf-circle.done{background:var(--greend);border-color:var(--green);color:var(--green)}
+.wf-circle.active{background:var(--accentd2);border-color:var(--accent);color:var(--accent2)}
+.wf-label{font-size:11px;color:var(--textm);margin-left:5px;white-space:nowrap;max-width:72px;line-height:1.2}
+.wf-label.active{color:var(--accent2)}
+.wf-label.done{color:var(--green)}
+.wf-arrow{color:var(--textm);margin:0 6px;font-size:11px}
+
+/* PROGRESS */
+.prog-wrap{height:3px;background:var(--s3);border-radius:2px;margin-bottom:18px}
+.prog-bar{height:3px;background:var(--accent);border-radius:2px;transition:width .4s}
+
+/* STEP ACTIONS */
+.step-actions{display:flex;align-items:center;gap:8px;margin-top:16px;flex-wrap:wrap}
+.step-actions-right{margin-left:auto;display:flex;gap:8px}
+
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.card-sub{font-size:12px;color:var(--textd);margin-bottom:14px}
+
+/* DROP ZONE */
+.dz{border:2px dashed var(--border2);border-radius:var(--r);padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2)}
+.dz:hover,.dz.drag{border-color:var(--accent);background:var(--accentd)}
+.dz-icon{font-size:28px;margin-bottom:8px;opacity:.6}
+.dz-text{color:var(--textd);font-size:13px}
+.dz-text strong{color:var(--accent2);cursor:pointer}
+
+/* FILE LIST */
+.file-list{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.fi{background:var(--s2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 13px;display:flex;align-items:center;gap:9px}
+.fi-info{flex:1;min-width:0}
+.fi-name{font-weight:600;color:var(--text);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fi-meta{font-size:11px;color:var(--textd);margin-top:1px}
+.fi-rm{background:none;border:none;color:var(--textm);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:4px}
+.fi-rm:hover{color:var(--red);background:var(--redd)}
+
+/* BADGE */
+.badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:11px;font-weight:700}
+.badge-ok{background:var(--greend);color:var(--green);border:1px solid rgba(62,207,142,.3)}
+.badge-warn{background:var(--yellowd);color:var(--yellow);border:1px solid rgba(245,197,24,.3)}
+.badge-err{background:var(--redd);color:var(--red);border:1px solid rgba(240,91,106,.3)}
+.badge-info{background:var(--accentd);color:var(--accent2);border:1px solid rgba(79,124,255,.3)}
+.badge-miss{background:var(--redd);color:var(--red);border:1px solid rgba(240,91,106,.4);font-weight:800}
+
+/* PLATFORM TAGS */
+.ptag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:700}
+.ptag-쿠팡{background:rgba(240,91,106,.15);color:#f05b6a}
+.ptag-위메프{background:rgba(79,124,255,.15);color:#7b9fff}
+.ptag-도매꾹{background:rgba(245,197,24,.15);color:#d4a800}
+.ptag-ESM{background:rgba(62,207,142,.15);color:#3ecf8e}
+.ptag-네이버{background:rgba(62,207,142,.2);color:#1db870}
+.ptag-오너클랜{background:rgba(255,140,66,.15);color:#ff8c42}
+.ptag-인터파크{background:rgba(155,106,240,.15);color:#a97bff}
+.ptag-기타{background:var(--s3);color:var(--textd)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--rs)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{background:var(--s2);position:sticky;top:0;z-index:5}
+th{padding:8px 11px;text-align:left;font-size:10px;font-weight:700;color:var(--textm);letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:7px 11px;border-bottom:1px solid rgba(42,47,69,.4);color:var(--textd);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--s2);color:var(--text)}
+.td-name{font-weight:600;color:var(--text)}
+.td-mono{font-family:monospace;font-size:11px;color:var(--textm)}
+.td-track{font-family:monospace;font-size:12px;color:var(--green)}
+.td-miss{font-style:italic;color:var(--red)}
+
+/* BTNS */
+.btn{padding:7px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:disabled{background:var(--s3);color:var(--textm);cursor:not-allowed}
+.btn-secondary{background:var(--s2);color:var(--textd);border:1px solid var(--border2)}
+.btn-secondary:hover{color:var(--text);border-color:var(--accent)}
+.btn-green{background:var(--greend);color:var(--green);border:1px solid rgba(62,207,142,.3)}
+.btn-green:hover{filter:brightness(1.1)}
+.btn-warn{background:var(--yellowd);color:var(--yellow);border:1px solid rgba(245,197,24,.3)}
+.btn-danger{background:var(--redd);color:var(--red);border:1px solid rgba(240,91,106,.3)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-xs{padding:2px 8px;font-size:11px}
+
+/* INFO BOX */
+.ibox{padding:10px 14px;border-radius:var(--rs);font-size:12px;display:flex;gap:8px;align-items:flex-start;margin-bottom:12px}
+.ibox.blue{background:var(--accentd);border:1px solid rgba(79,124,255,.2);color:var(--accent2)}
+.ibox.green{background:var(--greend);border:1px solid rgba(62,207,142,.2);color:var(--green)}
+.ibox.yellow{background:var(--yellowd);border:1px solid rgba(245,197,24,.2);color:var(--yellow)}
+.ibox.red{background:var(--redd);border:1px solid rgba(240,91,106,.2);color:var(--red)}
+
+/* ERROR MSG */
+.err-msg{background:var(--redd);border:1px solid rgba(240,91,106,.4);color:var(--red);padding:9px 14px;border-radius:var(--rs);font-size:13px;font-weight:600;display:none;margin-bottom:10px;align-items:center;gap:7px}
+.err-msg.show{display:flex}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.sbox{background:var(--s1);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px}
+.sbox-n{font-size:20px;font-weight:700;line-height:1}
+.sbox-l{font-size:11px;color:var(--textd);margin-top:2px}
+.sbox-n.acc{color:var(--accent2)}.sbox-n.grn{color:var(--green)}.sbox-n.yel{color:var(--yellow)}.sbox-n.red{color:var(--red)}
+
+/* COURIER TABS */
+.ctabs{display:flex;gap:7px;margin-bottom:12px}
+.ctab{padding:7px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--s2);color:var(--textd);transition:all .15s;font-family:inherit}
+.ctab.active{background:var(--accentd2);border-color:var(--accent);color:var(--accent2)}
+.ctab:hover{border-color:var(--accent)}
+
+/* SETTINGS */
+.set-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.set-grid{grid-template-columns:1fr}}
+.set-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.set-head{padding:10px 14px;border-bottom:1px solid var(--border);background:var(--s2);display:flex;align-items:center;justify-content:space-between}
+.set-head-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+.set-body{padding:12px}
+.set-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid rgba(42,47,69,.3)}
+.set-row:last-child{border-bottom:none}
+.set-key{font-size:11px;color:var(--textd);width:88px;flex-shrink:0}
+.set-val{flex:1}
+.sinput{background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 8px;font-size:12px;font-family:monospace;width:100%;outline:none;transition:border-color .15s}
+.sinput:focus{border-color:var(--accent)}
+.sinput.wide{font-family:inherit}
+.sinput-sel{background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 8px;font-size:12px;font-family:inherit;outline:none;cursor:pointer;width:100%}
+
+/* MANUAL TRACKING */
+.mt-item{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--border);border-radius:var(--rs);padding:7px 11px}
+.mt-info{flex:1;min-width:0}
+.mt-name{font-size:12px;font-weight:600;color:var(--text)}
+.mt-prod{font-size:11px;color:var(--textm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* SECTION TITLE */
+.sec-title{font-size:10px;font-weight:700;color:var(--textm);letter-spacing:.07em;text-transform:uppercase;margin:14px 0 8px}
+.sec-title:first-child{margin-top:0}
+
+/* STEP PANEL */
+.sp{display:none}
+.sp.active{display:block}
+
+/* COMBO TAG - combined shipping */
+.combine-tag{background:var(--accentd);color:var(--accent2);border:1px solid rgba(79,124,255,.3);padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;margin-left:5px}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--s1);border:1px solid var(--border2);color:var(--text);padding:9px 16px;border-radius:var(--rs);font-size:13px;font-weight:500;z-index:9999;opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none;display:flex;align-items:center;gap:7px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{opacity:1;transform:translateY(0)}
+.t-ok .ti{color:var(--green)}.t-err .ti{color:var(--red)}.t-info .ti{color:var(--accent2)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border2)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo" onclick="showPage('workflow',document.querySelector('.nav-tab'))">주문</div>
+  <button class="nav-tab active" data-page="workflow" onclick="showPage('workflow',this)">⚡ 주문처리</button>
+  <button class="nav-tab" data-page="settings" onclick="showPage('settings',this)">⚙ 설정</button>
+  <div class="nav-sp"></div>
+  <button class="nav-icon-btn" id="themeBtn" onclick="toggleTheme()" title="라이트/다크 모드">🌙</button>
+</nav>
+
+<!-- ══════════ WORKFLOW ══════════ -->
+<div class="page active" id="page-workflow">
+  <div class="wf-nav" id="wfNav"></div>
+  <div class="prog-wrap"><div class="prog-bar" id="progBar" style="width:11%"></div></div>
+
+  <!-- STEP 1 -->
+  <div class="sp active" id="sp1">
+    <div class="card">
+      <div class="card-title">📂 주문파일 업로드</div>
+      <div class="card-sub">쇼핑몰에서 다운받은 주문내역 파일을 올려주세요. 파일명으로 쇼핑몰 자동 감지됩니다.</div>
+      <div class="dz" id="dz1" onclick="document.getElementById('fi1').click()"
+        ondragover="dzOver(event,'dz1')" ondragleave="dzLeave(event,'dz1')" ondrop="dzDrop(event,'dz1')">
+        <div class="dz-icon">📁</div>
+        <div class="dz-text">파일을 드래그하거나 <strong>클릭해서 선택</strong></div>
+        <div style="font-size:11px;color:var(--textm);margin-top:5px">xlsx · xls · 여러 파일 동시 업로드 가능</div>
+      </div>
+      <input type="file" id="fi1" accept=".xlsx,.xls" multiple onchange="handleOrderFiles(this.files)">
+      <div class="file-list" id="fl1"></div>
+    </div>
+    <div class="err-msg" id="e1">⚠ 주문파일을 1개 이상 업로드해주세요.</div>
+    <div class="step-actions">
+      <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ 맨 처음으로</button>
+      <div class="step-actions-right">
+        <button class="btn btn-warn btn-sm" onclick="saveProgress()">💾 현재까지 저장</button>
+        <button class="btn btn-primary" onclick="tryGoStep(2)">임포트 확인 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="sp" id="sp2">
+    <div class="card">
+      <div class="card-title">🔍 파싱 결과 확인</div>
+      <div class="card-sub">파일별 읽기 결과를 확인하세요. 감지 오류 시 설정에서 파일패턴·컬럼을 수정하세요.</div>
+      <div id="parseResults"></div>
+    </div>
+    <div class="err-msg" id="e2">⚠ 정상 감지된 파일이 없습니다. 설정에서 파일패턴을 확인하세요.</div>
+    <div class="step-actions">
+      <button class="btn btn-secondary btn-sm" onclick="goStep(1)">← 뒤로</button>
+      <button class="btn btn-danger btn-sm" onclick="clearImport()">🗑 임포트 초기화</button>
+      <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ 맨 처음으로</button>
+      <div class="step-actions-right">
+        <button class="btn btn-warn btn-sm" onclick="saveProgress()">💾 저장</button>
+        <button class="btn btn-primary" onclick="tryGoStep(3)">통합 주문 확인 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="sp" id="sp3">
+    <div class="card">
+      <div class="card-title">📋 통합 주문내역</div>
+      <div class="card-sub">전체 주문 목록입니다. 합배송 건은 <span class="combine-tag">합배송</span> 표시됩니다.</div>
+      <div class="stats-row" id="s3stats"></div>
+      <div class="tbl-wrap" style="max-height:360px;overflow-y:auto">
+        <table><thead><tr>
+          <th>주문번호</th><th>수령인</th><th>상품명(가공)</th><th>수량</th><th>주문처</th><th>연락처</th><th>배송메시지</th>
+        </tr></thead><tbody id="s3body"></tbody></table>
+      </div>
+    </div>
+    <div class="step-actions">
+      <button class="btn btn-secondary btn-sm" onclick="goStep(2)">← 뒤로</button>
+      <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ 맨 처음으로</button>
+      <div class="step-actions-right">
+        <button class="btn btn-warn btn-sm" onclick="saveProgress()">💾 저장</button>
+        <button class="btn btn-primary" onclick="tryGoStep(4)">택배사 파일 생성 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="sp" id="sp4">
+    <div class="card">
+      <div class="card-title">🚚 택배사 업로드 파일 생성</div>
+      <div class="card-sub">택배사를 선택하면 해당 양식으로 파일이 가공됩니다. 합배송 처리방식은 설정에서 변경 가능합니다.</div>
+      <div class="sec-title">택배사 선택</div>
+      <div class="ctabs" id="courierTabs"></div>
+      <div class="ibox blue" id="courierInfo"></div>
+      <div class="sec-title">미리보기</div>
+      <div class="tbl-wrap">
+        <table><thead id="s4head"></thead><tbody id="s4body"></tbody></table>
+      </div>
+    </div>
+    <div class="step-actions">
+      <button class="btn btn-secondary btn-sm" onclick="goStep(3)">← 뒤로</button>
+      <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ 맨 처음으로</button>
+      <div class="step-actions-right">
+        <button class="btn btn-warn btn-sm" onclick="saveProgress()">💾 저장</button>
+        <button class="btn btn-green" onclick="downloadCourierFile()">⬇ 택배사 파일 다운로드</button>
+        <button class="btn btn-primary" onclick="tryGoStep(5)">다음 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="sp" id="sp5">
+    <div class="card">
+      <div class="card-title">📤 택배 접수 안내</div>
+      <div class="card-sub">택배사 사이트에서 작업 후 송장파일을 받아오세요.</div>
+      <div class="ibox blue"><span>1️⃣</span><div>다운받은 파일을 <strong>택배사 홈페이지</strong>에 업로드하세요</div></div>
+      <div class="ibox blue"><span>2️⃣</span><div>송장 출력 후 <strong>송장번호 파일</strong>을 다운로드하세요</div></div>
+      <div class="ibox yellow"><span>⚠</span><div>파일을 받은 후 아래 버튼으로 다음 단계를 진행하세요</div></div>
+    </div>
+    <div class="step-actions">
+      <button class="btn btn-secondary btn-sm" onclick="goStep(4)">← 뒤로</button>
+      <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ 맨 처음으로</button>
+      <div class="step-actions-right">
+        <button class="btn btn-primary" onclick="tryGoStep(6)">송장파일 업로드 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="sp" id="sp6">
+    <div class="card">
+      <div class="card-title">📥 송장번호 업로드 / 미기입 확인</div>
+      <div class="card-sub">택배사 송장파일을 올리거나 직접 입력하세요. <span class="badge badge-miss">미기입</span> 항목이 없어야 다음으로 넘어갈 수 있습니다.</div>
+      <div class="dz" id="dz6" onclick="document.getElementById('fi6').click()"
+        ondragover="dzOver(event,'dz6')" ondragleave="dzLeave(event,'dz6')" ondrop="dzDropTrack(event)">
+        <div class="dz-icon">📋</div>
+        <div class="dz-text">송장번호 파일 <strong>드래그 or 클릭</strong></div>
+      </div>
+      <input type="file" id="fi6" accept=".xlsx,.xls" onchange="handleTrackingFile(this.files[0])">
+      <div id="trackFileInfo" style="margin-top:10px"></div>
+      <div class="sec-title" style="margin-top:14px">수동 입력</div>
+      <div id="manualList" style="display:flex;flex-direction:column;gap:5px;max-height:320px;overflow-y:auto"></div>
+    </div>
+    <div class="err-msg" id="e6">⚠ <span id="e6msg">미기입 송장번호가 있습니다.</span></div>
+    <div class="step-actions">
+      <button class="btn btn-secondary btn-sm" onclick="goStep(5)">← 뒤로</button>
+      <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ 맨 처음으로</button>
+      <div class="step-actions-right">
+        <button class="btn btn-warn btn-sm" onclick="saveProgress()">💾 저장</button>
+        <button class="btn btn-primary" onclick="tryGoStep(7)">매칭 확인 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="sp" id="sp7">
+    <div class="card">
+      <div class="card-title">🔗 송장번호 매칭 결과</div>
+      <div class="card-sub">주문과 송장번호 연결 상태를 확인하세요.</div>
+      <div class="stats-row" id="s7stats"></div>
+      <div class="tbl-wrap" style="max-height:360px;overflow-y:auto">
+        <table><thead><tr>
+          <th>주문번호</th><th>수령인</th><th>상품명</th><th>주문처</th><th>송장번호</th><th>상태</th>
+        </tr></thead><tbody id="s7body"></tbody></table>
+      </div>
+    </div>
+    <div class="step-actions">
+      <button class="btn btn-secondary btn-sm" onclick="goStep(6)">← 뒤로</button>
+      <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ 맨 처음으로</button>
+      <div class="step-actions-right">
+        <button class="btn btn-warn btn-sm" onclick="saveProgress()">💾 저장</button>
+        <button class="btn btn-primary" onclick="tryGoStep(8)">파일 저장 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="sp" id="sp8">
+    <div class="card">
+      <div class="card-title">💾 쇼핑몰별 송장 파일 생성</div>
+      <div class="card-sub">원본 파일 양식 그대로 송장번호가 기입된 파일을 생성합니다.</div>
+      <div id="s8files" style="display:flex;flex-direction:column;gap:7px"></div>
+    </div>
+    <div class="step-actions">
+      <button class="btn btn-secondary btn-sm" onclick="goStep(7)">← 뒤로</button>
+      <button class="btn btn-secondary btn-sm" onclick="resetAll()">↺ 맨 처음으로</button>
+      <div class="step-actions-right">
+        <button class="btn btn-warn btn-sm" onclick="saveProgress()">💾 저장</button>
+        <button class="btn btn-green" onclick="downloadAllFiles()">⬇ 전체 다운로드</button>
+        <button class="btn" id="gsBtn" style="background:rgba(66,133,244,.15);color:#4285f4;border:1px solid rgba(66,133,244,.3)" onclick="saveToGSheet(false)">📊 구글 시트 수동 저장</button>
+        <button class="btn btn-primary" onclick="tryGoStep(9)">완료 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 9 -->
+  <div class="sp" id="sp9">
+    <div class="card" style="text-align:center;padding:44px 20px">
+      <div style="font-size:44px;margin-bottom:14px">🎉</div>
+      <div style="font-size:17px;font-weight:700;margin-bottom:8px">주문처리 완료!</div>
+      <div style="color:var(--textd);margin-bottom:20px">각 쇼핑몰에 파일을 업로드하면 고객 송장번호 등록이 완료됩니다.</div>
+      <div class="ibox green" style="text-align:left;display:inline-flex;width:auto;padding:10px 18px">
+        <span>✅</span><div id="completeSummary"></div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:18px">
+        <button class="btn btn-secondary" onclick="resetForNew()">🔄 새 주문 처리</button>
+        <button class="btn btn-green" onclick="downloadAllFiles()">⬇ 파일 다시 다운로드</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SETTINGS ══════════ -->
+<div class="page" id="page-settings">
+  <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+    <div>
+      <div style="font-size:15px;font-weight:700">설정</div>
+      <div style="font-size:12px;color:var(--textd);margin-top:2px">열 번호: A=0, B=1 … Z=25, AA=26, AB=27, AC=28, AD=29, AE=30, AF=31, AG=32, AH=33, AI=34, AL=37, AO=40, AQ=42, AS=44, AT=45</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:7px">
+      <button class="btn btn-primary btn-sm" onclick="saveSettings()">💾 저장</button>
+      <button class="btn btn-secondary btn-sm" onclick="resetSettings()">↺ 기본값</button>
+    </div>
+  </div>
+
+  <div class="sec-title" style="display:flex;align-items:center;gap:8px">
+    쇼핑몰 설정
+    <div id="addShopInline" style="display:flex;gap:6px;align-items:center;margin-left:4px">
+      <input id="newShopName" class="sinput" placeholder="쇼핑몰 이름" style="width:120px" onkeydown="if(event.key==='Enter')addShop()">
+      <button class="btn btn-secondary btn-xs" onclick="addShop()">+ 추가</button>
+    </div>
+  </div>
+  <div class="set-grid" id="shopGrid"></div>
+
+  <div class="sec-title" style="margin-top:20px;display:flex;align-items:center;gap:8px">
+    택배사 설정
+    <div style="display:flex;gap:6px;align-items:center;margin-left:4px">
+      <input id="newCourierName" class="sinput" placeholder="택배사 이름" style="width:120px" onkeydown="if(event.key==='Enter')addCourier()">
+      <button class="btn btn-secondary btn-xs" onclick="addCourier()">+ 추가</button>
+    </div>
+  </div>
+  <div class="set-grid" id="courierGrid"></div>
+</div>
+
+<div class="toast" id="toast"><span class="ti">✓</span><span id="toastMsg"></span></div>
+
+<script>
+
+// ── 열 알파벳 ↔ 숫자 변환 (A=0, B=1 ... Z=25, AA=26 ...)
+function colLetterToNum(s){
+  if(s===null||s===undefined||s==='')return null;
+  s=String(s).trim().toUpperCase();
+  if(/^\d+$/.test(s))return parseInt(s,10); // 숫자도 그대로 허용
+  let n=0;
+  for(let i=0;i<s.length;i++) n=n*26+(s.charCodeAt(i)-64);
+  return n-1; // 0-based
+}
+function colNumToLetter(n){
+  if(n===null||n===undefined||n==='')return'';
+  n=Number(n);
+  if(isNaN(n)||n<0)return'';
+  let s=''; let x=n+1;
+  while(x>0){let r=(x-1)%26;s=String.fromCharCode(65+r)+s;x=Math.floor((x-1)/26);}
+  return s;
+}
+// ══════════════════════════════════════════
+// DEFAULT CONFIG
+// ══════════════════════════════════════════
+const DEFAULT_CFG = {
+  shops: {
+    쿠팡:    {pattern:'DeliveryLi',startRow:1,orderNum:2,name:26,phone:27,addr:29,zip:28,product:10,option:null,optionCode:16,qty:22,msg:30,trackCol:null,customCols:[]},
+    위메프:  {pattern:'orderList_',startRow:1,orderNum:1,name:18,phone:19,addr:25,zip:24,product:33,option:34,optionCode:null,qty:10,msg:26,trackCol:null,customCols:[]},
+    도매꾹:  {pattern:'domeggook_',startRow:1,orderNum:0,name:13,phone:17,addr:14,zip:15,product:8,option:null,optionCode:18,qty:9,msg:20,trackCol:null,customCols:[]},
+    ESM:     {pattern:'GeneralDel',startRow:1,orderNum:2,name:9,phone:17,addr:20,zip:19,product:28,option:null,optionCode:15,qty:6,msg:21,trackCol:null,customCols:[]},
+    네이버:  {pattern:'스마트스토어',startRow:2,orderNum:1,name:10,phone:40,addr:42,zip:44,product:37,option:38,optionCode:null,qty:20,msg:45,trackCol:null,customCols:[]},
+    오너클랜:{pattern:'order_2021',startRow:1,orderNum:15,name:4,phone:6,addr:8,zip:7,product:9,option:null,optionCode:22,qty:11,msg:18,trackCol:null,customCols:[]},
+    인터파크:{pattern:'주문_발송관리',startRow:6,orderNum:0,name:19,phone:21,addr:23,zip:22,product:25,option:null,optionCode:32,qty:7,msg:24,trackCol:null,customCols:[]},
+  },
+  couriers: {
+    롯데택배: {
+      columns:['받는분','전화번호','주소','우편번호','품명','수량','배송메시지','보내는분','보내는분전화'],
+      map:{name:'받는분',phone:'전화번호',addr:'주소',zip:'우편번호',product:'품명',qty:'수량',msg:'배송메시지'},
+      senderName:'',senderPhone:'',
+      mergeType:'combine',mergeSep:' / ',
+      trackNameCol:0,trackNumCol:1,trackStartRow:1,
+      customCols:[],
+    },
+    CJ대한통운: {
+      columns:['받는분성명','받는분전화번호','받는분주소','우편번호','품명','수량','배송메시지','보내는분성명','보내는분전화번호'],
+      map:{name:'받는분성명',phone:'받는분전화번호',addr:'받는분주소',zip:'우편번호',product:'품명',qty:'수량',msg:'배송메시지'},
+      senderName:'',senderPhone:'',
+      mergeType:'separate',mergeSep:' / ',
+      trackNameCol:0,trackNumCol:1,trackStartRow:1,
+      customCols:[],
+    },
+  }
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let cfg = deepClone(DEFAULT_CFG);
+let uploadedFiles = [];
+let orders = [];
+let selectedCourier = '롯데택배';
+let currentStep = 1;
+let isDark = true;
+
+function deepClone(o){return JSON.parse(JSON.stringify(o))}
+
+// load saved config
+try{const s=localStorage.getItem('order_cfg');if(s)cfg=JSON.parse(s);}catch(e){}
+try{const t=localStorage.getItem('order_theme');if(t==='light'){isDark=false;document.body.classList.add('light');document.getElementById('themeBtn').textContent='☀️';}}catch(e){}
+
+// ══════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════
+function toggleTheme(){
+  isDark=!isDark;
+  document.body.classList.toggle('light',!isDark);
+  document.getElementById('themeBtn').textContent=isDark?'🌙':'☀️';
+  localStorage.setItem('order_theme',isDark?'dark':'light');
+}
+
+// ══════════════════════════════════════════
+// NAV / PAGE
+// ══════════════════════════════════════════
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='settings')renderSettings();
+}
+
+// ══════════════════════════════════════════
+// WORKFLOW STEPS
+// ══════════════════════════════════════════
+const STEP_LABELS=['파일 업로드','임포트 확인','주문 확인','택배사 파일','택배 접수','송장 업로드','매칭 확인','파일 저장','완료'];
+
+function buildWfNav(){
+  const w=document.getElementById('wfNav');
+  w.innerHTML=STEP_LABELS.map((l,i)=>{
+    const n=i+1,done=n<currentStep,active=n===currentStep;
+    return `<div class="wf-step">
+      ${i>0?'<div class="wf-arrow">›</div>':''}
+      <div class="wf-circle ${done?'done':active?'active':''}" onclick="done&&goStep(${n})" title="${l}">${done?'✓':n}</div>
+      <div class="wf-label ${done?'done':active?'active':''}">${l}</div>
+    </div>`;
+  }).join('');
+}
+
+function goStep(n){
+  if(n===2)prep2();
+  if(n===3)prep3();
+  if(n===4)prep4();
+  if(n===6)prep6();
+  if(n===7)prep7();
+  if(n===8)prep8();
+  if(n===9)prep9();
+  document.querySelectorAll('.sp').forEach(p=>p.classList.remove('active'));
+  document.getElementById('sp'+n).classList.add('active');
+  currentStep=n;
+  buildWfNav();
+  document.getElementById('progBar').style.width=Math.round(n/9*100)+'%';
+  window.scrollTo(0,0);
+}
+
+function tryGoStep(n){
+  hideErr('e1');hideErr('e2');hideErr('e6');
+  if(n===2){
+    if(uploadedFiles.length===0){showErr('e1');return;}
+  }
+  if(n===3){
+    const valid=uploadedFiles.filter(f=>!f.error&&f.rows.length>0);
+    if(valid.length===0){showErr('e2');return;}
+  }
+  if(n===7){
+    const miss=uniqueOrders().filter(o=>!o.tracking.trim());
+    if(miss.length>0){
+      const e=document.getElementById('e6');
+      document.getElementById('e6msg').textContent=`미기입 송장번호 ${miss.length}건이 있습니다. 모두 입력 후 진행해주세요.`;
+      showErr('e6');return;
+    }
+  }
+  goStep(n);
+}
+
+function showErr(id){document.getElementById(id).classList.add('show')}
+function hideErr(id){document.getElementById(id).classList.remove('show')}
+
+buildWfNav();
+
+// ══════════════════════════════════════════
+// DRAG & DROP
+// ══════════════════════════════════════════
+function dzOver(e,id){e.preventDefault();document.getElementById(id).classList.add('drag')}
+function dzLeave(e,id){document.getElementById(id).classList.remove('drag')}
+function dzDrop(e,id){e.preventDefault();document.getElementById(id).classList.remove('drag');handleOrderFiles(e.dataTransfer.files)}
+function dzDropTrack(e){e.preventDefault();document.getElementById('dz6').classList.remove('drag');if(e.dataTransfer.files[0])handleTrackingFile(e.dataTransfer.files[0])}
+
+// ══════════════════════════════════════════
+// PLATFORM DETECTION
+// ══════════════════════════════════════════
+function detectPlatform(fname){
+  const n=fname.toLowerCase();
+  for(const[p,c]of Object.entries(cfg.shops)){
+    if(n.includes(c.pattern.toLowerCase()))return p;
+  }
+  if(n.includes('coupang')||n.includes('쿠팡'))return'쿠팡';
+  if(n.includes('wemake')||n.includes('위메프'))return'위메프';
+  if(n.includes('naver')||n.includes('스마트'))return'네이버';
+  if(n.includes('esm')||n.includes('general'))return'ESM';
+  if(n.includes('도매꾹'))return'도매꾹';
+  if(n.includes('owner')||n.includes('오너클랜'))return'오너클랜';
+  if(n.includes('interpark')||n.includes('인터파크'))return'인터파크';
+  return null;
+}
+
+// ══════════════════════════════════════════
+// PRODUCT NAME BUILD (옵션코드 우선)
+// ══════════════════════════════════════════
+function buildProductName(row, shopCfg){
+  const base=String(row[shopCfg.product]||'').trim();
+  const optCode=shopCfg.optionCode!=null?String(row[shopCfg.optionCode]||'').trim():'';
+  const optName=shopCfg.option!=null?String(row[shopCfg.option]||'').trim():'';
+  if(optCode) return base+' / '+optCode;
+  if(optName) return base+' ['+optName+']';
+  return base;
+}
+
+// ══════════════════════════════════════════
+// FILE PARSE
+// ══════════════════════════════════════════
+function handleOrderFiles(files){Array.from(files).forEach(f=>parseOrderFile(f))}
+
+function parseOrderFile(file){
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const platform=detectPlatform(file.name);
+      const entry={name:file.name,platform,rawRows,rows:[],error:null,rawWb:wb};
+      if(!platform){
+        entry.error='쇼핑몰 감지 실패';
+      } else {
+        const sc=cfg.shops[platform];
+        entry.rows=rawRows.slice(sc.startRow)
+          .filter(r=>r[sc.orderNum]||r[sc.name])
+          .map(r=>({
+            orderNum:String(r[sc.orderNum]||''),
+            name:String(r[sc.name]||''),
+            phone:String(r[sc.phone]||''),
+            addr:String(r[sc.addr]||''),
+            zip:String(r[sc.zip]||''),
+            productRaw:String(r[sc.product]||''),
+            product:buildProductName(r,sc),
+            qty:String(r[sc.qty]||'1'),
+            msg:String(r[sc.msg]||''),
+            platform,tracking:'',_raw:r,
+          }));
+      }
+      uploadedFiles=uploadedFiles.filter(f2=>f2.name!==file.name);
+      uploadedFiles.push(entry);
+      renderFileList();
+    }catch(err){toast('파싱 실패: '+file.name,'err')}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderFileList(){
+  const wrap=document.getElementById('fl1');
+  const btn=document.querySelector('#sp1 .btn-primary');
+  if(uploadedFiles.length===0){wrap.innerHTML='';return;}
+  wrap.innerHTML=uploadedFiles.map((f,i)=>{
+    const badge=f.error
+      ?`<span class="badge badge-err">⚠ ${f.error}</span>`
+      :`<span class="badge badge-ok">✓ ${f.platform} · ${f.rows.length}건</span>`;
+    return `<div class="fi">
+      <div style="font-size:18px">📄</div>
+      <div class="fi-info"><div class="fi-name">${esc(f.name)}</div><div class="fi-meta">${f.rows.length}행</div></div>
+      ${badge}
+      <button class="fi-rm" onclick="removeFile(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function removeFile(i){uploadedFiles.splice(i,1);renderFileList()}
+
+// ══════════════════════════════════════════
+// UNIQUE ORDERS (합배송 기준: 같은 주문번호+플랫폼)
+// ══════════════════════════════════════════
+function uniqueOrders(){
+  const seen=new Set();
+  return orders.filter(o=>{
+    const k=o.orderNum+'|'+o.platform;
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  });
+}
+
+function isCombined(o){
+  return orders.filter(x=>x.orderNum===o.orderNum&&x.platform===o.platform).length>1;
+}
+
+// ══════════════════════════════════════════
+// STEP 2
+// ══════════════════════════════════════════
+function prep2(){
+  document.getElementById('parseResults').innerHTML=uploadedFiles.map(f=>{
+    if(f.error)return`<div class="ibox red"><span>❌</span><div><strong>${esc(f.name)}</strong> — ${f.error}</div></div>`;
+    const s=f.rows.slice(0,3);
+    return`<div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
+        <span class="ptag ptag-${f.platform}">${f.platform}</span>
+        <span style="font-weight:600;font-size:13px">${esc(f.name)}</span>
+        <span class="badge badge-ok">${f.rows.length}건</span>
+      </div>
+      <div class="tbl-wrap">
+        <table><thead><tr><th>주문번호</th><th>수령인</th><th>상품명(가공)</th><th>수량</th><th>연락처</th></tr></thead>
+        <tbody>${s.map(r=>`<tr>
+          <td class="td-mono">${esc(r.orderNum.slice(0,18))}</td>
+          <td class="td-name">${esc(r.name)}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.product)}">${esc(r.product)}</td>
+          <td>${esc(r.qty)}</td><td>${esc(r.phone)}</td>
+        </tr>`).join('')}
+        ${f.rows.length>3?`<tr><td colspan="5" style="text-align:center;color:var(--textm);font-size:11px">... 외 ${f.rows.length-3}건</td></tr>`:''}
+        </tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// STEP 3
+// ══════════════════════════════════════════
+function prep3(){
+  orders=uploadedFiles.flatMap(f=>f.rows);
+  const plats=[...new Set(orders.map(o=>o.platform))];
+  document.getElementById('s3stats').innerHTML=`
+    <div class="sbox"><div class="sbox-n acc">${orders.length}</div><div class="sbox-l">전체 주문</div></div>
+    <div class="sbox"><div class="sbox-n">${plats.length}</div><div class="sbox-l">쇼핑몰</div></div>
+    <div class="sbox"><div class="sbox-n grn">${orders.filter(o=>o.tracking).length}</div><div class="sbox-l">송장 완료</div></div>
+    <div class="sbox"><div class="sbox-n yel">${[...new Set(orders.filter(o=>isCombined(o)).map(o=>o.orderNum+'|'+o.platform))].length}</div><div class="sbox-l">합배송 건</div></div>`;
+  const seen=new Set();
+  document.getElementById('s3body').innerHTML=orders.map(o=>{
+    const k=o.orderNum+'|'+o.platform;
+    const firstOfGroup=!seen.has(k);
+    if(firstOfGroup)seen.add(k);
+    const combo=isCombined(o)&&firstOfGroup;
+    return`<tr>
+      <td class="td-mono">${esc(o.orderNum.slice(0,16))}${o.orderNum.length>16?'…':''}</td>
+      <td class="td-name">${esc(o.name)}${combo?'<span class="combine-tag">합배송</span>':''}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(o.product)}">${esc(o.product)}</td>
+      <td>${esc(o.qty)}</td>
+      <td><span class="ptag ptag-${o.platform}">${o.platform}</span></td>
+      <td>${esc(o.phone)}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--textm)">${esc(o.msg)||'-'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// STEP 4 — 택배사 파일
+// ══════════════════════════════════════════
+function prep4(){
+  // 택배사가 삭제되었으면 첫번째로 fallback
+  if(!cfg.couriers[selectedCourier]) selectedCourier=Object.keys(cfg.couriers)[0]||'';
+  const tabs=document.getElementById('courierTabs');
+  tabs.innerHTML=Object.keys(cfg.couriers).map(name=>`
+    <button class="ctab ${name===selectedCourier?'active':''}" data-courier="${esc(name)}" onclick="selectCourierByName(this)">${esc(name)}</button>`).join('');
+  updateCourierPreview();
+}
+
+function selectCourierByName(btn){
+  selectedCourier=btn.dataset.courier;
+  document.querySelectorAll('.ctab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  updateCourierPreview();
+}
+
+// selectCourier replaced by selectCourierByName
+
+function updateCourierPreview(){
+  const cc=cfg.couriers[selectedCourier];
+  if(!cc)return;
+  const mergeLabel={'combine':'동일 주문 1행으로 합치기','separate':'각 행 유지','field':'별도 필드'}[cc.mergeType]||cc.mergeType;
+  document.getElementById('courierInfo').innerHTML=`ℹ️ <strong>${selectedCourier}</strong> — 합배송: ${mergeLabel} · 상품명 구분자: "${cc.mergeSep||' / '}"`;
+  const rows=buildCourierRows();
+  const cols=[...cc.columns,...(cc.customCols||[]).map(c=>c.label)];
+  document.getElementById('s4head').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  document.getElementById('s4body').innerHTML=rows.slice(0,5).map(r=>
+    '<tr>'+r.map(v=>`<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(v))}</td>`).join('')+'</tr>'
+  ).join('');
+}
+
+function buildCourierRows(){
+  const cc=cfg.couriers[selectedCourier];
+  const cols=[...cc.columns,...(cc.customCols||[]).map(c=>c.label)];
+  let rows=[];
+
+  if(cc.mergeType==='combine'){
+    // 동일 주문번호+플랫폼 그룹
+    const groups={};
+    orders.forEach(o=>{
+      const k=o.orderNum+'|'+o.platform;
+      if(!groups[k])groups[k]=[];
+      groups[k].push(o);
+    });
+    Object.values(groups).forEach(group=>{
+      const base=group[0];
+      const merged=group.map(o=>o.product).join(cc.mergeSep||' / ');
+      rows.push(buildOneRow(base,merged,cc,cols));
+    });
+  } else {
+    orders.forEach(o=>rows.push(buildOneRow(o,o.product,cc,cols)));
+  }
+  return rows;
+}
+
+function buildOneRow(o,product,cc,cols){
+  return cols.map(col=>{
+    const m=cc.map;
+    if(col===m.name)   return o.name;
+    if(col===m.phone)  return o.phone;
+    if(col===m.addr)   return o.addr;
+    if(col===m.zip)    return o.zip;
+    if(col===m.product)return product;
+    if(col===m.qty)    return o.qty;
+    if(col===m.msg)    return o.msg;
+    if(col.includes('보내는분')&&col.includes('전화'))return cc.senderPhone||'';
+    if(col.includes('보내는분')||col.includes('성명'))return cc.senderName||'';
+    // 커스텀 컬럼
+    const custom=(cc.customCols||[]).find(c=>c.label===col);
+    if(custom&&custom.sourceField&&o[custom.sourceField]!=null)return o[custom.sourceField];
+    return custom?custom.defaultVal||'':'';
+  });
+}
+
+function downloadCourierFile(){
+  const rows=buildCourierRows();
+  const cc=cfg.couriers[selectedCourier];
+  const cols=[...cc.columns,...(cc.customCols||[]).map(c=>c.label)];
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([cols,...rows]);
+  XLSX.utils.book_append_sheet(wb,ws,'배송목록');
+  XLSX.writeFile(wb,`택배업로드_${selectedCourier}_${ds()}.xlsx`);
+  toast('택배사 파일 다운로드 완료','ok');
+}
+
+// ══════════════════════════════════════════
+// STEP 6 — 송장 업로드 & 수동입력
+// ══════════════════════════════════════════
+function prep6(){
+  const uniq=uniqueOrders();
+  document.getElementById('manualList').innerHTML=uniq.map(o=>`
+    <div class="mt-item">
+      <div class="mt-info">
+        <div class="mt-name">${esc(o.name)}${isCombined(o)?'<span class="combine-tag">합배송</span>':''}</div>
+        <div class="mt-prod">${esc(o.product)}</div>
+      </div>
+      <span class="ptag ptag-${o.platform}">${o.platform}</span>
+      <span class="badge ${o.tracking?'badge-ok':'badge-miss'}" id="trk-badge-${encodeKey(o.orderNum,o.platform)}">${o.tracking?'완료':'미기입'}</span>
+      <input style="background:var(--s2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 8px;font-size:12px;font-family:monospace;width:150px;outline:none"
+        type="text" placeholder="송장번호"
+        value="${esc(o.tracking)}"
+        data-order="${esc(o.orderNum)}" data-platform="${esc(o.platform)}"
+        oninput="setTracking(this.dataset.order,this.dataset.platform,this.value,this)">
+    </div>`).join('');
+}
+
+function encodeKey(ord,plat){return btoa(encodeURIComponent(ord+'|'+plat)).replace(/[+/=]/g,'_')}
+
+function setTracking(orderNum,platform,val,input){
+  orders.forEach(o=>{if(o.orderNum===orderNum&&o.platform===platform)o.tracking=val.trim()});
+  const badge=document.getElementById('trk-badge-'+encodeKey(orderNum,platform));
+  if(badge){badge.className='badge '+(val.trim()?'badge-ok':'badge-miss');badge.textContent=val.trim()?'완료':'미기입'}
+}
+
+function handleTrackingFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const cc=cfg.couriers[selectedCourier]||Object.values(cfg.couriers)[0];
+      let matched=0;
+      rows.slice(cc.trackStartRow||1).forEach(row=>{
+        const nv=String(row[cc.trackNameCol]||'').trim();
+        const tv=String(row[cc.trackNumCol]||'').trim();
+        if(!tv)return;
+        orders.forEach(o=>{if(!o.tracking&&o.name===nv){o.tracking=tv;matched++}});
+      });
+      document.getElementById('trackFileInfo').innerHTML=
+        `<div class="ibox green"><span>✅</span><div>${esc(file.name)} — <strong>${matched}건</strong> 자동 매칭</div></div>`;
+      prep6();
+      toast(matched+'건 자동 매칭 완료','ok');
+    }catch(err){toast('송장파일 파싱 실패','err')}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ══════════════════════════════════════════
+// STEP 7
+// ══════════════════════════════════════════
+function prep7(){
+  const tracked=orders.filter(o=>o.tracking).length;
+  const total=orders.length;
+  document.getElementById('s7stats').innerHTML=`
+    <div class="sbox"><div class="sbox-n acc">${total}</div><div class="sbox-l">전체</div></div>
+    <div class="sbox"><div class="sbox-n grn">${tracked}</div><div class="sbox-l">매칭 완료</div></div>
+    <div class="sbox"><div class="sbox-n yel">${total-tracked}</div><div class="sbox-l">미매칭</div></div>
+    <div class="sbox"><div class="sbox-n">${total?Math.round(tracked/total*100):0}%</div><div class="sbox-l">완료율</div></div>`;
+  document.getElementById('s7body').innerHTML=orders.map(o=>`
+    <tr>
+      <td class="td-mono">${esc(o.orderNum.slice(0,16))}</td>
+      <td class="td-name">${esc(o.name)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.product)}</td>
+      <td><span class="ptag ptag-${o.platform}">${o.platform}</span></td>
+      <td class="${o.tracking?'td-track':'td-miss'}">${o.tracking||'미기입'}</td>
+      <td><span class="badge ${o.tracking?'badge-ok':'badge-miss'}">${o.tracking?'완료':'미기입'}</span></td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════════════
+// STEP 8
+// ══════════════════════════════════════════
+function prep8(){
+  const plats=[...new Set(orders.map(o=>o.platform))];
+  document.getElementById('s8files').innerHTML=plats.map(p=>{
+    const cnt=orders.filter(o=>o.platform===p).length;
+    const tk=orders.filter(o=>o.platform===p&&o.tracking).length;
+    return`<div class="fi">
+      <div style="font-size:18px">📄</div>
+      <div class="fi-info">
+        <div class="fi-name"><span class="ptag ptag-${p}" style="margin-right:6px">${p}</span>송장_${p}.xlsx</div>
+        <div class="fi-meta">${cnt}건 · 송장완료 ${tk}건</div>
+      </div>
+      <span class="badge ${tk===cnt?'badge-ok':'badge-warn'}">${tk}/${cnt}</span>
+      <button class="btn btn-secondary btn-sm" onclick="downloadShopFile('${p}')">⬇ 다운로드</button>
+    </div>`;
+  }).join('');
+}
+
+// 엑셀 날짜 시리얼 → 문자열 변환
+function xlDateToStr(v){
+  if(typeof v==='number'&&v>10000&&v<100000){
+    // SheetJS serial date → JS Date
+    const d=XLSX.SSF.parse_date_code(v);
+    if(d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+  }
+  return v;
+}
+
+// 원본 시트에서 셀값을 날짜 변환 포함해서 안전하게 추출
+function safeSheetRows(ws){
+  const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+  return rawRows.map(row=>row.map(cell=>{
+    // 날짜 시리얼 숫자 변환
+    const ref=ws['!ref'];
+    return xlDateToStr(cell);
+  }));
+}
+
+function downloadShopFile(platform){
+  const shopOrders=orders.filter(o=>o.platform===platform);
+  const sc=cfg.shops[platform];
+  const srcFile=uploadedFiles.find(f=>f.platform===platform);
+
+  if(srcFile&&srcFile.rawWb){
+    const wb2=XLSX.utils.book_new();
+    const ws=srcFile.rawWb.Sheets[srcFile.rawWb.SheetNames[0]];
+    // 날짜 변환 포함해서 읽기
+    const rawRows=safeSheetRows(ws);
+
+    // 헤더 행에서 송장번호 컬럼 찾기
+    const startRow=sc?sc.startRow:1;
+    const headerRow=rawRows[startRow-1]||rawRows[0]||[];
+    let trackColIdx=sc&&sc.trackCol!=null?Number(sc.trackCol):null;
+    if(trackColIdx===null){
+      // 헤더에서 키워드 검색
+      trackColIdx=headerRow.findIndex(h=>String(h).match(/송장|운송장|택배.*번호|운송번호|tracking/i));
+    }
+    // 아직도 못 찾으면 — 원본 행 최대 길이 기준 맨 끝 + 1
+    const maxCols=rawRows.reduce((m,r)=>Math.max(m,r.length),0);
+    if(trackColIdx<0||trackColIdx===null){
+      trackColIdx=maxCols; // 새 컬럼 추가
+      // 헤더 행에도 추가
+      if(rawRows[startRow-1]) rawRows[startRow-1][trackColIdx]='송장번호';
+      else if(rawRows[0]) rawRows[0][trackColIdx]='송장번호';
+    }
+
+    // 택배사명 컬럼 찾기 (쿠팡 등에 있음)
+    const courierColIdx=headerRow.findIndex(h=>String(h).match(/택배사|배송사|courier/i));
+    // 발송일 컬럼 찾기
+    const shipDateColIdx=headerRow.findIndex(h=>String(h).match(/발송일|출고일|배송일|ship.*date/i));
+    const todayFormatted=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\. /g,'-').replace('.','');
+
+    const trackMap={};
+    shopOrders.forEach(o=>{trackMap[String(o.orderNum).trim()]=o.tracking});
+
+    const newRows=rawRows.map((row,ri)=>{
+      if(ri<startRow) return row; // 헤더는 그대로
+      const ord=String(row[sc?sc.orderNum:0]||'').trim();
+      if(ord&&trackMap[ord]){
+        const r=[...row];
+        r[trackColIdx]=trackMap[ord];
+        // 택배사명이 있는 컬럼이면 선택된 택배사명 기입
+        if(courierColIdx>=0) r[courierColIdx]=selectedCourier;
+                // 발송일 기입 (오늘)
+        if(shipDateColIdx>=0) r[shipDateColIdx]=ds();
+        return r;
+      }
+      return row;
+    });
+
+    const nws=XLSX.utils.aoa_to_sheet(newRows);
+    XLSX.utils.book_append_sheet(wb2,nws,'주문내역');
+    XLSX.writeFile(wb2,`송장_${platform}_${ds()}.xlsx`);
+  } else {
+    // 원본 파일 없을 때 새로 생성
+    const wb=XLSX.utils.book_new();
+    const data=[['주문번호','수령인','연락처','주소','우편번호','상품명','수량','배송메시지','택배사','송장번호'],
+      ...shopOrders.map(o=>[o.orderNum,o.name,o.phone,o.addr,o.zip,o.product,o.qty,o.msg,selectedCourier,o.tracking||''])];
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),'주문내역');
+    XLSX.writeFile(wb,`송장_${platform}_${ds()}.xlsx`);
+  }
+  toast(platform+' 파일 다운로드','ok');
+}
+
+function downloadAllFiles(){
+  [...new Set(orders.map(o=>o.platform))].forEach(p=>downloadShopFile(p));
+  toast('전체 파일 다운로드 완료','ok');
+}
+
+// ══════════════════════════════════════════
+// STEP 9
+// ══════════════════════════════════════════
+function prep9(){
+  const tracked=orders.filter(o=>o.tracking).length;
+  const plats=[...new Set(orders.map(o=>o.platform))];
+  document.getElementById('completeSummary').innerHTML=
+    `총 <strong>${orders.length}</strong>건 · 송장 <strong>${tracked}</strong>건 · `+
+    plats.map(p=>`<span class="ptag ptag-${p}">${p}</span>`).join(' ');
+  // 9단계 완료 시 구글 시트 자동 저장
+  setTimeout(()=>saveToGSheet(true), 800);
+}
+
+function resetForNew(){
+  // step9 완료 후 confirm 없이 바로 새 주문 처리 시작
+  uploadedFiles=[];orders=[];
+  ['fl1','parseResults','trackFileInfo','manualList'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  ['fi1','fi6'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  hideErr('e1');hideErr('e2');hideErr('e6');
+  currentStep=1;
+  document.querySelectorAll('.sp').forEach(p=>p.classList.remove('active'));
+  document.getElementById('sp1').classList.add('active');
+  buildWfNav();
+  document.getElementById('progBar').style.width='11%';
+  window.scrollTo(0,0);
+  toast('새 주문 처리를 시작합니다','ok');
+}
+
+function resetAll(){
+  // confirm 제거 (샌드박스 환경 차단)
+  uploadedFiles=[];orders=[];
+  ['fl1','parseResults','trackFileInfo','manualList'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  ['fi1','fi6'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  hideErr('e1');hideErr('e2');hideErr('e6');
+  currentStep=1;
+  document.querySelectorAll('.sp').forEach(p=>p.classList.remove('active'));
+  document.getElementById('sp1').classList.add('active');
+  buildWfNav();
+  document.getElementById('progBar').style.width='11%';
+  window.scrollTo(0,0);
+  toast('초기화 완료','ok');
+}
+
+function clearImport(){
+  uploadedFiles=[];orders=[];
+  document.getElementById('fl1').innerHTML='';
+  document.getElementById('parseResults').innerHTML='';
+  document.getElementById('fi1').value='';
+  hideErr('e1');hideErr('e2');
+  goStep(1);
+  toast('임포트 초기화 완료','ok');
+}
+
+function saveProgress(){
+  try{
+    const data={uploadedFiles:uploadedFiles.map(f=>({...f,rawWb:null})),orders,currentStep,selectedCourier};
+    localStorage.setItem('order_progress',JSON.stringify(data));
+    toast('현재 진행상황 저장 완료','ok');
+  }catch(e){toast('저장 실패 (용량 초과 가능)','err')}
+}
+
+
+// ══════════════════════════════════════════
+// 구글 시트 연동
+// ══════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxjLGL1githwY12xhSm3T1XJCxPqu8RlL17_uWY4b_2rfZGV3M6wbkKGUBxrfc1EuAlgg/exec';
+
+// GAS는 브라우저 fetch POST에서 CORS 오류 발생
+// → no-cors mode + form/iframe 방식으로 우회
+function saveToGSheet(silent){
+  if(orders.length===0){
+    if(!silent) toast('저장할 주문 데이터가 없습니다','err');
+    return;
+  }
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const payload={
+      action:'saveOrders',
+      date:today,
+      orders:orders.map(o=>({
+        date:today,
+        platform:o.platform,
+        orderNum:o.orderNum,
+        name:o.name,
+        product:o.product,
+        qty:Number(o.qty)||1,
+        tracking:o.tracking||'',
+        msg:o.msg||'',
+      }))
+    };
+
+    // 숨겨진 iframe + form 방식으로 POST (CORS 우회)
+    let iframe=document.getElementById('_gasFrame');
+    if(!iframe){
+      iframe=document.createElement('iframe');
+      iframe.id='_gasFrame';
+      iframe.name='_gasFrame';
+      iframe.style.display='none';
+      document.body.appendChild(iframe);
+    }
+
+    let form=document.getElementById('_gasForm');
+    if(form) form.remove();
+    form=document.createElement('form');
+    form.id='_gasForm';
+    form.method='POST';
+    form.action=GAS_URL;
+    form.target='_gasFrame';
+    form.style.display='none';
+
+    const input=document.createElement('input');
+    input.type='hidden';
+    input.name='payload';
+    input.value=JSON.stringify(payload);
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+
+    toast('구글 시트에 저장 중... ('+orders.length+'건)','ok');
+  } catch(err){
+    toast('저장 오류: '+err.message,'err');
+  }
+}
+
+// ══════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════
+function renderSettings(){
+  // ── 쇼핑몰 ──
+  const sg = document.getElementById('shopGrid');
+  sg.innerHTML = '';
+  Object.entries(cfg.shops).forEach(([shopName, sc]) => {
+    const card = makeShopCard(shopName, sc);
+    sg.appendChild(card);
+  });
+
+  // ── 택배사 ──
+  const cg = document.getElementById('courierGrid');
+  cg.innerHTML = '';
+  Object.entries(cfg.couriers).forEach(([cname, cc]) => {
+    const card = makeCourierCard(cname, cc);
+    cg.appendChild(card);
+  });
+}
+
+function makeShopCard(shopName, sc){
+  const wrap = document.createElement('div');
+  wrap.className = 'set-card';
+  
+  // 헤더
+  const head = document.createElement('div');
+  head.className = 'set-head';
+  head.innerHTML = `<div class="set-head-title"><span class="ptag ptag-${shopName}">${esc(shopName)}</span></div>`;
+  const delBtn = document.createElement('button');
+  delBtn.className = 'btn btn-danger btn-xs';
+  delBtn.textContent = '삭제';
+  delBtn.onclick = () => deleteShop(shopName);
+  head.appendChild(delBtn);
+  wrap.appendChild(head);
+
+  // 바디
+  const body = document.createElement('div');
+  body.className = 'set-body';
+  const fields = [
+    ['pattern','파일패턴','text'],['startRow','시작행','number'],
+    ['orderNum','주문번호 열','col'],['name','이름 열','col'],
+    ['phone','전화 열','col'],['addr','주소 열','col'],
+    ['zip','우편번호 열','col'],['product','상품명 열','col'],
+    ['option','옵션명 열','col',true],['optionCode','옵션코드 열','col',true],
+    ['qty','수량 열','col'],['msg','메시지 열','col'],
+    ['trackCol','송장번호 열','col',true],
+  ];
+  fields.forEach(([key,label,type,nullable]) => {
+    body.appendChild(makeSetRow(shopName, key, label, type, 'shop', nullable));
+  });
+
+  // 커스텀 컬럼
+  body.appendChild(makeCustomColSection('shop', shopName, sc.customCols||[]));
+  wrap.appendChild(body);
+  return wrap;
+}
+
+function makeCourierCard(cname, cc){
+  const wrap = document.createElement('div');
+  wrap.className = 'set-card';
+
+  const head = document.createElement('div');
+  head.className = 'set-head';
+  head.innerHTML = `<div class="set-head-title">📦 ${esc(cname)}</div>`;
+  const delBtn = document.createElement('button');
+  delBtn.className = 'btn btn-danger btn-xs';
+  delBtn.textContent = '삭제';
+  delBtn.onclick = () => deleteCourier(cname);
+  head.appendChild(delBtn);
+  wrap.appendChild(head);
+
+  const body = document.createElement('div');
+  body.className = 'set-body';
+
+  // 보내는분/연락처
+  [['senderName','보내는분','text'],['senderPhone','연락처','text']].forEach(([key,label]) => {
+    body.appendChild(makeSetRow(cname, key, label, 'text', 'courier'));
+  });
+
+  // 합배송방식 select
+  const mrow = document.createElement('div');
+  mrow.className = 'set-row';
+  mrow.innerHTML = '<div class="set-key">합배송방식</div>';
+  const sel = document.createElement('select');
+  sel.className = 'sinput-sel';
+  sel.style.flex = '1';
+  [['combine','동일주문 1행 합치기'],['separate','각 행 유지']].forEach(([v,t]) => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = t;
+    if(cc.mergeType === v) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => { cfg.couriers[cname].mergeType = sel.value; };
+  mrow.appendChild(sel);
+  body.appendChild(mrow);
+
+  // 구분자
+  body.appendChild(makeSetRow(cname, 'mergeSep', '합치기구분자', 'text', 'courier'));
+
+  // 송장 파일 컬럼
+  [['trackNameCol','수취인명 열','col'],['trackNumCol','송장번호 열','col'],['trackStartRow','시작행','number']].forEach(([key,label,type]) => {
+    body.appendChild(makeSetRow(cname, key, label, type, 'courier'));
+  });
+
+  // 컬럼 헤더 (textarea)
+  const crow = document.createElement('div');
+  crow.className = 'set-row';
+  crow.style.alignItems = 'flex-start';
+  crow.style.paddingTop = '8px';
+  crow.innerHTML = '<div class="set-key" style="padding-top:4px">컬럼헤더</div>';
+  const ta = document.createElement('textarea');
+  ta.className = 'sinput wide';
+  ta.rows = 3;
+  ta.style.flex = '1';
+  ta.style.resize = 'vertical';
+  ta.value = (cc.columns||[]).join('\n');
+  ta.onchange = () => { cfg.couriers[cname].columns = ta.value.split('\n').map(s=>s.trim()).filter(Boolean); };
+  crow.appendChild(ta);
+  body.appendChild(crow);
+
+  body.appendChild(makeCustomColSection('courier', cname, cc.customCols||[]));
+  wrap.appendChild(body);
+  return wrap;
+}
+
+function makeSetRow(entity, key, label, type, group, nullable){
+  const row = document.createElement('div');
+  row.className = 'set-row';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'set-key';
+  lbl.textContent = label;
+  row.appendChild(lbl);
+
+  const isCol = type === 'col';
+  const inp = document.createElement('input');
+  inp.type = isCol ? 'text' : type;
+  inp.className = 'sinput' + (type==='text'||isCol ? ' wide' : '');
+  inp.style.flex = '1';
+  inp.placeholder = nullable ? '없으면 비워두기' : (isCol ? '예: A, B, AA' : '');
+
+  // 현재 값 표시
+  const src = group==='shop' ? cfg.shops[entity] : cfg.couriers[entity];
+  const cur = src ? src[key] : null;
+  inp.value = isCol ? colNumToLetter(cur) : (cur===null||cur===undefined ? '' : cur);
+
+  inp.onchange = () => {
+    let val = inp.value.trim();
+    if(isCol){
+      val = (val===''&&nullable) ? null : colLetterToNum(val);
+    } else if(type==='number'){
+      val = (val===''&&nullable) ? null : Number(val);
+    }
+    if(group==='shop') cfg.shops[entity][key] = val;
+    else cfg.couriers[entity][key] = val;
+  };
+  row.appendChild(inp);
+  return row;
+}
+
+function makeCustomColSection(type, entity, cols){
+  const wrap = document.createElement('div');
+  wrap.className = 'set-row';
+  wrap.style.alignItems = 'flex-start';
+  wrap.style.paddingTop = '8px';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'set-key';
+  lbl.style.paddingTop = '4px';
+  lbl.textContent = '추가컬럼';
+  wrap.appendChild(lbl);
+
+  const inner = document.createElement('div');
+  inner.style.flex = '1';
+
+  const list = document.createElement('div');
+  list.style.cssText = 'display:flex;flex-direction:column;gap:4px';
+  
+  function renderCustomCols(){
+    list.innerHTML = '';
+    const src = type==='shop' ? cfg.shops[entity].customCols : cfg.couriers[entity].customCols;
+    (src||[]).forEach((c,i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:4px;align-items:center';
+      
+      const mkInput = (ph, val, cb) => {
+        const el = document.createElement('input');
+        el.className = 'sinput'; el.placeholder = ph; el.value = val||'';
+        el.style.flex = '1'; el.onchange = () => cb(el.value);
+        return el;
+      };
+      row.appendChild(mkInput('헤더명', c.label, v => {
+        if(type==='shop') cfg.shops[entity].customCols[i].label=v;
+        else cfg.couriers[entity].customCols[i].label=v;
+      }));
+      row.appendChild(mkInput('sourceField', c.sourceField, v => {
+        if(type==='shop') cfg.shops[entity].customCols[i].sourceField=v;
+        else cfg.couriers[entity].customCols[i].sourceField=v;
+      }));
+      row.appendChild(mkInput('기본값', c.defaultVal, v => {
+        if(type==='shop') cfg.shops[entity].customCols[i].defaultVal=v;
+        else cfg.couriers[entity].customCols[i].defaultVal=v;
+      }));
+      
+      const rmBtn = document.createElement('button');
+      rmBtn.className = 'btn btn-danger btn-xs';
+      rmBtn.textContent = '✕';
+      rmBtn.onclick = () => {
+        if(type==='shop') cfg.shops[entity].customCols.splice(i,1);
+        else cfg.couriers[entity].customCols.splice(i,1);
+        renderCustomCols();
+      };
+      row.appendChild(rmBtn);
+      list.appendChild(row);
+    });
+  }
+  renderCustomCols();
+  inner.appendChild(list);
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn btn-secondary btn-xs';
+  addBtn.style.marginTop = '5px';
+  addBtn.textContent = '+ 컬럼 추가';
+  addBtn.onclick = () => {
+    const src = type==='shop' ? cfg.shops[entity] : cfg.couriers[entity];
+    if(!src.customCols) src.customCols = [];
+    src.customCols.push({label:'',sourceField:'',defaultVal:''});
+    renderCustomCols();
+  };
+  inner.appendChild(addBtn);
+  wrap.appendChild(inner);
+  return wrap;
+}
+
+
+function srow(entity,key,label,val,type,group,nullable){
+  // 열 번호 필드는 알파벳으로 표시
+  const isColField = type==='number' && key!=='startRow' && key!=='trackNameCol' && key!=='trackNumCol' && key!=='trackStartRow';
+  const displayVal = isColField ? colNumToLetter(val) : (val===null||val===undefined?'':val);
+  const ph = nullable ? '없으면 비워두기' : (isColField ? '예: A, B, AA' : '');
+  const inputType = isColField ? 'text' : type;
+  return`<div class="set-row">
+    <div class="set-key">${label}</div>
+    <input type="${inputType}" class="sinput${inputType==='text'?' wide':''}" value="${esc(String(displayVal))}" placeholder="${ph}"
+      data-entity="${esc(entity)}" data-key="${key}" data-group="${group}" data-nullable="${nullable?'1':'0'}" data-iscol="${isColField?'1':'0'}"
+      onchange="handleSettingChange(this)">
+  </div>`;
+}
+
+function handleSettingChange(el){
+  const entity=el.dataset.entity, key=el.dataset.key, group=el.dataset.group;
+  const nullable=el.dataset.nullable==='1', isCol=el.dataset.iscol==='1';
+  let val=el.value.trim();
+  if(isCol){
+    val=(val===''&&nullable)?null:colLetterToNum(val);
+  } else if(el.type==='number'){
+    val=(val===''&&nullable)?null:Number(val);
+  }
+  if(group==='shop') cfg.shops[entity][key]=val;
+  else cfg.couriers[entity][key]=val;
+}
+
+function customColRow(type,entity,idx,c){
+  return`<div style="display:flex;gap:4px;align-items:center">
+    <input class="sinput" style="width:90px" placeholder="헤더명" value="${esc(c.label||'')}"
+      onchange="cfg.${type}s['${entity}'].customCols[${idx}].label=this.value">
+    <input class="sinput" style="width:80px" placeholder="sourceField" value="${esc(c.sourceField||'')}"
+      onchange="cfg.${type}s['${entity}'].customCols[${idx}].sourceField=this.value" title="orders 객체 키명 (name,phone,addr,zip,product,qty,msg,orderNum)">
+    <input class="sinput" style="width:70px" placeholder="기본값" value="${esc(c.defaultVal||'')}"
+      onchange="cfg.${type}s['${entity}'].customCols[${idx}].defaultVal=this.value">
+    <button class="btn btn-danger btn-xs" onclick="removeCustomCol('${type}','${entity}',${idx})">✕</button>
+  </div>`;
+}
+
+function addCustomCol(type,entity){
+  if(type==='shop')cfg.shops[entity].customCols=(cfg.shops[entity].customCols||[]).concat({label:'',sourceField:'',defaultVal:''});
+  else cfg.couriers[entity].customCols=(cfg.couriers[entity].customCols||[]).concat({label:'',sourceField:'',defaultVal:''});
+  renderSettings();
+}
+function removeCustomCol(type,entity,idx){
+  if(type==='shop')cfg.shops[entity].customCols.splice(idx,1);
+  else cfg.couriers[entity].customCols.splice(idx,1);
+  renderSettings();
+}
+
+function addShop(){
+  const inp = document.getElementById('newShopName');
+  const name = inp ? inp.value.trim() : '';
+  if(!name){ toast('쇼핑몰 이름을 입력하세요','err'); return; }
+  if(cfg.shops[name]){ toast(name+' 은 이미 존재합니다','err'); return; }
+  cfg.shops[name]={pattern:'',startRow:1,orderNum:0,name:0,phone:1,addr:2,zip:3,product:4,option:null,optionCode:null,qty:5,msg:6,trackCol:null,customCols:[]};
+  if(inp) inp.value='';
+  renderSettings();toast(name+' 추가됨','ok');
+}
+function deleteShop(name){
+  delete cfg.shops[name];
+  renderSettings();
+  toast(name+' 삭제됨','ok');
+}
+function addCourier(){
+  const inp = document.getElementById('newCourierName');
+  const name = inp ? inp.value.trim() : '';
+  if(!name){ toast('택배사 이름을 입력하세요','err'); return; }
+  if(cfg.couriers[name]){ toast(name+' 은 이미 존재합니다','err'); return; }
+  cfg.couriers[name]={columns:['받는분','전화번호','주소','우편번호','품명','수량','배송메시지'],
+    map:{name:'받는분',phone:'전화번호',addr:'주소',zip:'우편번호',product:'품명',qty:'수량',msg:'배송메시지'},
+    senderName:'',senderPhone:'',mergeType:'combine',mergeSep:' / ',
+    trackNameCol:0,trackNumCol:1,trackStartRow:1,customCols:[]};
+  if(inp) inp.value='';
+  renderSettings();toast(name+' 추가됨','ok');
+}
+function deleteCourier(name){
+  delete cfg.couriers[name];
+  renderSettings();
+  toast(name+' 삭제됨','ok');
+}
+
+function saveSettings(){
+  localStorage.setItem('order_cfg',JSON.stringify(cfg));
+  // 이미 업로드된 파일이 있으면 새 설정으로 재파싱
+  if(uploadedFiles.length>0){
+    const reparsePromises=uploadedFiles.map(f=>{
+      if(!f.rawWb)return;
+      const platform=detectPlatform(f.name);
+      f.platform=platform;
+      if(!platform){f.error='쇼핑몰 감지 실패';f.rows=[];return;}
+      f.error=null;
+      const ws=f.rawWb.Sheets[f.rawWb.SheetNames[0]];
+      const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const sc=cfg.shops[platform];
+      f.rows=rawRows.slice(sc.startRow)
+        .filter(r=>r[sc.orderNum]||r[sc.name])
+        .map(r=>({
+          orderNum:String(r[sc.orderNum]||''),
+          name:String(r[sc.name]||''),
+          phone:String(r[sc.phone]||''),
+          addr:String(r[sc.addr]||''),
+          zip:String(r[sc.zip]||''),
+          productRaw:String(r[sc.product]||''),
+          product:buildProductName(r,sc),
+          qty:String(r[sc.qty]||'1'),
+          msg:String(r[sc.msg]||''),
+          platform,tracking:'',_raw:r,
+        }));
+    });
+    renderFileList();
+    if(currentStep>=3){orders=uploadedFiles.flatMap(f=>f.rows);}
+    if(currentStep>=4){prep4();}
+    toast('설정 저장 + 파일 재파싱 완료','ok');
+  } else {
+    toast('설정 저장 완료','ok');
+  }
+}
+function resetSettings(){
+  cfg=deepClone(DEFAULT_CFG);
+  localStorage.setItem('order_cfg',JSON.stringify(cfg));
+  renderSettings();toast('기본값으로 복원됨','ok');
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function ds(){return new Date().toISOString().slice(0,10).replace(/-/g,'')}
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');
+  const icons={ok:'✓',err:'✗',info:'ℹ'};
+  t.className='toast t-'+(type==='ok'?'ok':type==='err'?'err':'info');
+  document.querySelector('.toast .ti').textContent=icons[type]||'ℹ';
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);
+}
+</script>
+</body>
+</html>
